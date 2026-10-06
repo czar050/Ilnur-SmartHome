@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>PromVR IoT</title>
+
+    <script src="https://unpkg.com/mqtt@5.15.2/dist/mqtt.min.js"></script>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+
+            display: flex;
+            justify-content: center;
+            align-items: center;
+
+            font-family: Arial, sans-serif;
+
+            background: #101318;
+            color: white;
+        }
+
+        .panel {
+            width: min(90%, 420px);
+            padding: 30px;
+
+            border-radius: 24px;
+
+            background: #1a1f27;
+
+            text-align: center;
+
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+        }
+
+        h1 {
+            margin-top: 0;
+            margin-bottom: 10px;
+        }
+
+        .status {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+
+            margin-bottom: 30px;
+
+            color: #aaa;
+        }
+
+        .status-dot {
+            width: 12px;
+            height: 12px;
+
+            border-radius: 50%;
+
+            background: #777;
+        }
+
+        .status.connected .status-dot {
+            background: #35d07f;
+            box-shadow: 0 0 12px #35d07f;
+        }
+
+        .status.disconnected .status-dot {
+            background: #ff4d4d;
+        }
+
+        .led {
+            width: 140px;
+            height: 140px;
+
+            margin: 0 auto 30px;
+
+            border-radius: 50%;
+
+            background: #292e36;
+
+            box-shadow:
+                inset 0 0 30px rgba(0, 0, 0, 0.5);
+
+            transition: 0.3s;
+        }
+
+        .led.on {
+            background: #fff200;
+
+            box-shadow:
+                0 0 20px #fff200,
+                0 0 50px #fff200,
+                0 0 100px rgba(255, 242, 0, 0.5);
+        }
+
+        .state {
+            margin-bottom: 25px;
+
+            font-size: 20px;
+            font-weight: bold;
+        }
+
+        .buttons {
+            display: flex;
+            gap: 15px;
+        }
+
+        button {
+            flex: 1;
+
+            padding: 18px;
+
+            border: none;
+            border-radius: 14px;
+
+            font-size: 18px;
+            font-weight: bold;
+
+            cursor: pointer;
+
+            transition: 0.2s;
+        }
+
+        button:active {
+            transform: scale(0.96);
+        }
+
+        .on-button {
+            background: #35d07f;
+            color: #101318;
+        }
+
+        .off-button {
+            background: #ff4d4d;
+            color: white;
+        }
+
+        button:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="panel">
+
+    <h1>PromVR IoT</h1>
+
+    <div id="status" class="status disconnected">
+        <span class="status-dot"></span>
+        <span id="statusText">Подключение...</span>
+    </div>
+
+    <div id="led" class="led"></div>
+
+    <div id="state" class="state">
+        Состояние: неизвестно
+    </div>
+
+    <div class="buttons">
+        <button
+            id="onButton"
+            class="on-button"
+            onclick="setLed('ON')"
+            disabled>
+            ВКЛ
+        </button>
+
+        <button
+            id="offButton"
+            class="off-button"
+            onclick="setLed('OFF')"
+            disabled>
+            ВЫКЛ
+        </button>
+    </div>
+
+</div>
+
+<script>
+
+const MQTT_URL = 'wss://broker.emqx.io:8084/mqtt';
+
+const TOPIC_SET = 'promvr/nodemcu/led/set';
+const TOPIC_STATE = 'promvr/nodemcu/led/state';
+
+const clientId =
+    'web-' +
+    Math.random()
+        .toString(16)
+        .substring(2, 10);
+
+const client = mqtt.connect(MQTT_URL, {
+
+    clientId: clientId,
+
+    clean: true,
+
+    connectTimeout: 10000,
+
+    reconnectPeriod: 3000
+});
+
+const statusElement =
+    document.getElementById('status');
+
+const statusText =
+    document.getElementById('statusText');
+
+const ledElement =
+    document.getElementById('led');
+
+const stateElement =
+    document.getElementById('state');
+
+const onButton =
+    document.getElementById('onButton');
+
+const offButton =
+    document.getElementById('offButton');
+
+
+client.on('connect', function () {
+
+    console.log('MQTT подключен');
+
+    statusElement.className =
+        'status connected';
+
+    statusText.textContent =
+        'Подключено';
+
+    onButton.disabled = false;
+    offButton.disabled = false;
+
+    client.subscribe(
+        TOPIC_STATE,
+        function(error) {
+
+            if (error) {
+                console.error(
+                    'Ошибка подписки:',
+                    error
+                );
+
+                return;
+            }
+
+            console.log(
+                'Подписка:',
+                TOPIC_STATE
+            );
+        }
+    );
+});
+
+
+client.on('message', function(topic, message) {
+
+    const value =
+        message.toString();
+
+    console.log(
+        'Получено:',
+        topic,
+        value
+    );
+
+    if (topic === TOPIC_STATE) {
+
+        updateLed(value);
+    }
+});
+
+
+client.on('error', function(error) {
+
+    console.error(
+        'MQTT ошибка:',
+        error
+    );
+});
+
+
+client.on('offline', function() {
+
+    statusElement.className =
+        'status disconnected';
+
+    statusText.textContent =
+        'Нет подключения';
+
+    onButton.disabled = true;
+    offButton.disabled = true;
+});
+
+
+function setLed(value) {
+
+    if (!client.connected) {
+        return;
+    }
+
+    client.publish(
+        TOPIC_SET,
+        value,
+        {
+            qos: 0,
+            retain: false
+        }
+    );
+}
+
+
+function updateLed(value) {
+
+    if (value === 'ON') {
+
+        ledElement.classList.add('on');
+
+        stateElement.textContent =
+            'Состояние: ВКЛ';
+    }
+
+    else if (value === 'OFF') {
+
+        ledElement.classList.remove('on');
+
+        stateElement.textContent =
+            'Состояние: ВЫКЛ';
+    }
+}
+
+</script>
+
+</body>
+</html>

@@ -6,7 +6,7 @@
 
     <title>Ilnur SmartHome</title>
 
-    <script src="https://unpkg.com/mqtt@5.15.2/dist/mqtt.min.js"></script>
+    <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
 
     <style>
         * {
@@ -16,327 +16,310 @@
         body {
             margin: 0;
             min-height: 100vh;
-
+            font-family: Arial, sans-serif;
+            background: #101114;
+            color: #ffffff;
             display: flex;
             justify-content: center;
             align-items: center;
-
-            font-family: Arial, sans-serif;
-
-            background: #101318;
-            color: white;
+            padding: 20px;
         }
 
-        .panel {
-            width: min(90%, 420px);
-            padding: 30px;
-
-            border-radius: 24px;
-
-            background: #1a1f27;
-
-            text-align: center;
-
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+        .container {
+            width: 100%;
+            max-width: 500px;
         }
 
         h1 {
-            margin-top: 0;
+            text-align: center;
             margin-bottom: 10px;
         }
 
-        .status {
-            display: inline-flex;
+        .connection {
+            text-align: center;
+            color: #888;
+            margin-bottom: 25px;
+        }
+
+        .card {
+            background: #1b1d22;
+            border-radius: 16px;
+            padding: 22px;
+            margin-bottom: 16px;
+        }
+
+        .card-title {
+            font-size: 20px;
+            margin-bottom: 20px;
+        }
+
+        .led-status {
+            display: flex;
             align-items: center;
-            gap: 8px;
-
-            margin-bottom: 30px;
-
-            color: #aaa;
-        }
-
-        .status-dot {
-            width: 12px;
-            height: 12px;
-
-            border-radius: 50%;
-
-            background: #777;
-        }
-
-        .status.connected .status-dot {
-            background: #35d07f;
-            box-shadow: 0 0 12px #35d07f;
-        }
-
-        .status.disconnected .status-dot {
-            background: #ff4d4d;
+            gap: 12px;
+            margin-bottom: 20px;
         }
 
         .led {
-            width: 140px;
-            height: 140px;
-
-            margin: 0 auto 30px;
-
+            width: 20px;
+            height: 20px;
             border-radius: 50%;
-
-            background: #292e36;
-
-            box-shadow:
-                inset 0 0 30px rgba(0, 0, 0, 0.5);
-
-            transition: 0.3s;
+            background: #444;
         }
 
         .led.on {
-            background: #fff200;
-
-            box-shadow:
-                0 0 20px #fff200,
-                0 0 50px #fff200,
-                0 0 100px rgba(255, 242, 0, 0.5);
-        }
-
-        .state {
-            margin-bottom: 25px;
-
-            font-size: 20px;
-            font-weight: bold;
+            background: #00ff66;
+            box-shadow: 0 0 15px #00ff66;
         }
 
         .buttons {
             display: flex;
-            gap: 15px;
+            gap: 10px;
         }
 
         button {
             flex: 1;
-
-            padding: 18px;
-
+            padding: 14px;
             border: none;
-            border-radius: 14px;
-
-            font-size: 18px;
-            font-weight: bold;
-
+            border-radius: 10px;
+            font-size: 16px;
             cursor: pointer;
-
-            transition: 0.2s;
-        }
-
-        button:active {
-            transform: scale(0.96);
         }
 
         .on-button {
-            background: #35d07f;
-            color: #101318;
-        }
-
-        .off-button {
-            background: #ff4d4d;
+            background: #00c853;
             color: white;
         }
 
-        button:disabled {
-            opacity: 0.4;
-            cursor: not-allowed;
+        .off-button {
+            background: #d32f2f;
+            color: white;
+        }
+
+        .sensors {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .sensor {
+            background: #25282f;
+            border-radius: 12px;
+            padding: 18px;
+            text-align: center;
+        }
+
+        .sensor-icon {
+            font-size: 30px;
+            margin-bottom: 8px;
+        }
+
+        .sensor-value {
+            font-size: 28px;
+            font-weight: bold;
+        }
+
+        .sensor-name {
+            margin-top: 6px;
+            color: #999;
+            font-size: 14px;
         }
     </style>
 </head>
 
 <body>
 
-<div class="panel">
+<div class="container">
 
     <h1>Ilnur SmartHome</h1>
 
-    <div id="status" class="status disconnected">
-        <span class="status-dot"></span>
-        <span id="statusText">Подключение...</span>
+    <div class="connection" id="connectionStatus">
+        Подключение...
     </div>
 
-    <div id="led" class="led"></div>
+    <div class="card">
+        <div class="card-title">💡 Светодиод</div>
 
-    <div id="state" class="state">
-        Состояние: неизвестно
+        <div class="led-status">
+            <div class="led" id="ledIndicator"></div>
+            <span id="ledStatus">Выключен</span>
+        </div>
+
+        <div class="buttons">
+            <button class="on-button" onclick="setLed('ON')">
+                Включить
+            </button>
+
+            <button class="off-button" onclick="setLed('OFF')">
+                Выключить
+            </button>
+        </div>
     </div>
 
-    <div class="buttons">
-        <button
-            id="onButton"
-            class="on-button"
-            onclick="setLed('ON')"
-            disabled>
-            ВКЛ
-        </button>
+    <div class="card">
+        <div class="card-title">🌡️ Датчики</div>
 
-        <button
-            id="offButton"
-            class="off-button"
-            onclick="setLed('OFF')"
-            disabled>
-            ВЫКЛ
-        </button>
+        <div class="sensors">
+
+            <div class="sensor">
+                <div class="sensor-icon">🌡️</div>
+                <div class="sensor-value" id="temperature">
+                    -- °C
+                </div>
+                <div class="sensor-name">
+                    Температура
+                </div>
+            </div>
+
+            <div class="sensor">
+                <div class="sensor-icon">💧</div>
+                <div class="sensor-value" id="humidity">
+                    -- %
+                </div>
+                <div class="sensor-name">
+                    Влажность
+                </div>
+            </div>
+
+        </div>
     </div>
 
 </div>
 
 <script>
 
-const MQTT_URL = 'wss://broker.emqx.io:8084/mqtt';
+    const MQTT_URL = "wss://broker.emqx.io:8084/mqtt";
 
-const TOPIC_SET = 'promvr/nodemcu/led/set';
-const TOPIC_STATE = 'promvr/nodemcu/led/state';
+    const LED_SET_TOPIC = "promvr/nodemcu/led/set";
+    const LED_STATE_TOPIC = "promvr/nodemcu/led/state";
 
-const clientId =
-    'web-' +
-    Math.random()
-        .toString(16)
-        .substring(2, 10);
+    const TEMPERATURE_TOPIC =
+        "promvr/nodemcu/dht11/temperature";
 
-const client = mqtt.connect(MQTT_URL, {
+    const HUMIDITY_TOPIC =
+        "promvr/nodemcu/dht11/humidity";
 
-    clientId: clientId,
+    const connectionStatus =
+        document.getElementById("connectionStatus");
 
-    clean: true,
+    const ledIndicator =
+        document.getElementById("ledIndicator");
 
-    connectTimeout: 10000,
+    const ledStatus =
+        document.getElementById("ledStatus");
 
-    reconnectPeriod: 3000
-});
+    const temperatureElement =
+        document.getElementById("temperature");
 
-const statusElement =
-    document.getElementById('status');
-
-const statusText =
-    document.getElementById('statusText');
-
-const ledElement =
-    document.getElementById('led');
-
-const stateElement =
-    document.getElementById('state');
-
-const onButton =
-    document.getElementById('onButton');
-
-const offButton =
-    document.getElementById('offButton');
+    const humidityElement =
+        document.getElementById("humidity");
 
 
-client.on('connect', function () {
+    const client = mqtt.connect(MQTT_URL);
 
-    console.log('MQTT подключен');
 
-    statusElement.className =
-        'status connected';
+    client.on("connect", () => {
 
-    statusText.textContent =
-        'Подключено';
+        connectionStatus.textContent =
+            "● Подключено";
 
-    onButton.disabled = false;
-    offButton.disabled = false;
+        connectionStatus.style.color =
+            "#00c853";
 
-    client.subscribe(
-        TOPIC_STATE,
-        function(error) {
+        client.subscribe([
+            LED_STATE_TOPIC,
+            TEMPERATURE_TOPIC,
+            HUMIDITY_TOPIC
+        ]);
 
-            if (error) {
-                console.error(
-                    'Ошибка подписки:',
-                    error
-                );
+    });
 
-                return;
-            }
 
-            console.log(
-                'Подписка:',
-                TOPIC_STATE
-            );
+    client.on("reconnect", () => {
+
+        connectionStatus.textContent =
+            "Подключение...";
+
+        connectionStatus.style.color =
+            "#ff9800";
+
+    });
+
+
+    client.on("offline", () => {
+
+        connectionStatus.textContent =
+            "● Нет подключения";
+
+        connectionStatus.style.color =
+            "#d32f2f";
+
+    });
+
+
+    client.on("message", (topic, message) => {
+
+        const value = message.toString();
+
+
+        if (topic === LED_STATE_TOPIC) {
+
+            updateLed(value);
+
         }
-    );
-});
 
 
-client.on('message', function(topic, message) {
+        if (topic === TEMPERATURE_TOPIC) {
 
-    const value =
-        message.toString();
+            temperatureElement.textContent =
+                parseFloat(value).toFixed(1) + " °C";
 
-    console.log(
-        'Получено:',
-        topic,
-        value
-    );
-
-    if (topic === TOPIC_STATE) {
-
-        updateLed(value);
-    }
-});
-
-
-client.on('error', function(error) {
-
-    console.error(
-        'MQTT ошибка:',
-        error
-    );
-});
-
-
-client.on('offline', function() {
-
-    statusElement.className =
-        'status disconnected';
-
-    statusText.textContent =
-        'Нет подключения';
-
-    onButton.disabled = true;
-    offButton.disabled = true;
-});
-
-
-function setLed(value) {
-
-    if (!client.connected) {
-        return;
-    }
-
-    client.publish(
-        TOPIC_SET,
-        value,
-        {
-            qos: 0,
-            retain: false
         }
-    );
-}
 
 
-function updateLed(value) {
+        if (topic === HUMIDITY_TOPIC) {
 
-    if (value === 'ON') {
+            humidityElement.textContent =
+                parseFloat(value).toFixed(1) + " %";
 
-        ledElement.classList.add('on');
+        }
 
-        stateElement.textContent =
-            'Состояние: ВКЛ';
+    });
+
+
+    function setLed(state) {
+
+        if (!client.connected) {
+            return;
+        }
+
+        client.publish(
+            LED_SET_TOPIC,
+            state
+        );
+
     }
 
-    else if (value === 'OFF') {
 
-        ledElement.classList.remove('on');
+    function updateLed(state) {
 
-        stateElement.textContent =
-            'Состояние: ВЫКЛ';
+        if (state === "ON") {
+
+            ledIndicator.classList.add("on");
+
+            ledStatus.textContent =
+                "Включен";
+
+        } else {
+
+            ledIndicator.classList.remove("on");
+
+            ledStatus.textContent =
+                "Выключен";
+
+        }
+
     }
-}
 
 </script>
 

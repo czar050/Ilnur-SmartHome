@@ -300,6 +300,29 @@
 
     }
 
+    
+function handleUrlCommand() {
+    const params = new URLSearchParams(window.location.search);
+    const command = params.get("cmd")?.toUpperCase();
+
+    if (!["ON", "OFF", "LOCK", "UNLOCK"].includes(command)) {
+        return;
+    }
+
+    const publishCommand = () => {
+        client.publish(LED_SET_TOPIC, command);
+    };
+
+    if (client.connected) {
+        publishCommand();
+    } else {
+        client.once("connect", publishCommand);
+    }
+}
+
+handleUrlCommand();
+
+
 
     function updateLed(state) {
 
